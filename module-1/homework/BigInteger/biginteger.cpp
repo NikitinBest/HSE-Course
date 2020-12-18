@@ -1,7 +1,14 @@
 #include "biginteger.h"
 
+#include <algorithm>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <sstream>
+#include <vector>
+
+
 BigInteger::BigInteger(int x){
-    sgn = true;
     if(x == 0){
         num = {0};
         return;
@@ -17,20 +24,20 @@ BigInteger::BigInteger(int x){
 }
 
 BigInteger::BigInteger(std::string x){
-   sgn = !(x.size() && x[0]=='-');
-   for(int i = x.size(); i > 0; --i){
-		std::string substr = (i < 1) ? x.substr(0, i) : x.substr(i - 1, 1);
-		this->num.push_back(atoi(substr.c_str()));
-   }
+    if(x == ""){
+        num = {0};
+        return;
+    }        
+    sgn = !(x.size() && x[0]=='-');
+    for(int i = x.size(); i > 0; --i){
+        std::string substr = (i < 1) ? x.substr(0, i) : x.substr(i - 1, 1);
+        this->num.push_back(atoi(substr.c_str()));
+    }
 }
 
 BigInteger::BigInteger(const BigInteger& X) {
-	this->sgn = X.sgn;
-	this->num = X.num;
-}
-
-BigInteger::~BigInteger() {
-    //destructor
+    this->sgn = X.sgn;
+    this->num = X.num;
 }
 
 //Boolean operators
@@ -42,13 +49,17 @@ bool operator!=(const BigInteger& a, const BigInteger& b){
 }
 bool operator<(const BigInteger& a, const BigInteger& b){
     if(a==b) return false;
+
     if(a.sgn){
         if(b.sgn){
             if(a.num.size()!=b.num.size())
                 return a.num.size()<b.num.size();
             else{
-                for(int i = a.num.size() - 1; i >= 0 ; --i){
-                    if(a.num[i]!=b.num[i]) return a.num[i]<b.num[i];
+                if(a.num.size() == 1)
+                    return a.num[0]<b.num[0];
+                for(size_t i = a.num.size() - 1; i > 0 ; --i){
+                    if(a.num[i-1]!=b.num[i-1])
+                        return a.num[i-1]<b.num[i-1];
                 }
                 return false;
             }
@@ -59,11 +70,14 @@ bool operator<(const BigInteger& a, const BigInteger& b){
         if(b.sgn){
             return true;
         } else{
-			if (a.num.size() != b.num.size())
-				return a.num.size() > b.num.size();
+            if (a.num.size() != b.num.size())
+                return a.num.size() > b.num.size();
             else{
-                for(int i = a.num.size() - 1; i >= 0 ; --i){
-                    if(a.num[i]!=b.num[i]) return a.num[i]>b.num[i];
+                if(a.num.size() == 1)
+                    return a.num[0]>b.num[0];
+                for(size_t i = a.num.size(); i > 0 ; --i){
+                    if(a.num[i-1]!=b.num[i-1])
+                        return a.num[i-1]>b.num[i-1];
                 }
                 return false;
             }
@@ -71,65 +85,64 @@ bool operator<(const BigInteger& a, const BigInteger& b){
     }
 }
 bool operator>(const BigInteger& a, const BigInteger& b) {
-	if (a == b) return false;
-	return b < a;
+    if (a == b) return false;
+    return b < a;
 }
 bool operator<=(const BigInteger& a, const BigInteger& b) {
-	return ((a < b) || (a == b));
+    return ((a < b) || (a == b));
 }
 bool operator>=(const BigInteger& a, const BigInteger& b) {
-	return ((a > b) || (a == b));
-}
-
-BigInteger abs(const BigInteger& x) {
-	return x.sgn ? x : -x;
+    return ((a > b) || (a == b));
 }
 
 void BigInteger::trim() {
-	while(num.size() > 1 && num.back() == 0) num.pop_back();
-	if (num.size() == 1 && num.back() == 0) sgn = true;
+    while(num.size() > 1 && num.back() == 0)
+        num.pop_back();
+    if (num.size() == 1 && num.back() == 0)
+        sgn = true;
 }
 
 BigInteger& BigInteger::calc(const BigInteger& x, const bool minus) {
-   int ost = 0;
-	const bool isThisBigger = abs(*this) > abs(x), isSubtraction = (!sgn) ^ (!x.sgn) ^ minus;
+    int ost = 0;
+	const bool isThisBigger = num > x.num,
+    isSubtraction = (!sgn) ^ (!x.sgn) ^ minus;
 
-	if (!isThisBigger) {
-		sgn = !((!x.sgn) ^ minus);
-	}
+    if (!isThisBigger) {
+        sgn = !((!x.sgn) ^ minus);
+    }
 
-	for (int i = 0; i < num.size() || i < x.num.size() || ost != 0; i++) {
-		if (i >= num.size()) {
-			num.push_back(0);
-		}
+    for (int i = 0; i < num.size() || i < x.num.size() || ost != 0; i++) {
+        if (i >= num.size()) {
+            num.push_back(0);
+        }
 
-		if (isSubtraction) {
-			if (isThisBigger) {
-				num[i] -= (i < x.num.size() ? x.num[i] : 0);
-			}
-			else {
-				num[i] = (i < x.num.size() ? x.num[i] : 0) - (i < num.size() ? num[i] : 0);
-			}
-		}
-		else {
-			num[i] += (i < x.num.size() ? x.num[i] : 0);
-		}
+        if (isSubtraction) {
+            if (isThisBigger) {
+                num[i] -= (i < x.num.size() ? x.num[i] : 0);
+            }
+            else {
+                num[i] = (i < x.num.size() ? x.num[i] : 0) - (i < num.size() ? num[i] : 0);
+            }
+        }
+        else {
+            num[i] += (i < x.num.size() ? x.num[i] : 0);
+        }
 
-		num[i] += ost;
-		ost = 0;
+        num[i] += ost;
+        ost = 0;
 
-		if (num[i] >= 10) {
-			num[i] -= 10;
-			ost++;
-		}
-		else if (num[i] < 0) {
-			num[i] += 10;
-			ost--;
-		}
-	}
+        if (num[i] >= 10) {
+            num[i] -= 10;
+            ost++;
+        }
+        else if (num[i] < 0) {
+            num[i] += 10;
+            ost--;
+        }
+    }
 
-	trim();
-	return *this;
+    trim();
+    return *this;
 };
 
 BigInteger& BigInteger::operator+=(const BigInteger& x){
@@ -140,46 +153,86 @@ BigInteger& BigInteger::operator-=(const BigInteger& x){
 }
 BigInteger& BigInteger::operator*=(const BigInteger& x){
     BigInteger res(0);
-	int ost = 0;
+    int ost = 0;
 
-	res.sgn = !(sgn ^ x.sgn);
+    res.sgn = !(sgn ^ x.sgn);
 
-	for (int i = 0; i < num.size(); i++) {
-		for (int j = 0; j < x.num.size() || ost; j++) {
-			int k = i + j;
+    for (size_t i = 0; i < num.size(); i++) {
+        for (size_t j = 0; j < x.num.size() || ost; j++) {
+            size_t k = i + j;
 
-			if (k >= res.num.size()) {
-				res.num.push_back(0);
-			}
+            if (k >= res.num.size()) {
+                res.num.push_back(0);
+            }
+            if(j < x.num.size())
+                res.num[k] += num[i] * x.num[j] + ost;
+            else
+                res.num[k] += ost;
+            ost = 0;
 
-			res.num[k] += num[i] * x.num[j] + ost;
-			ost = 0;
-
-			if (res.num[k] >= 10) {
-				ost = res.num[k] / 10;
-				res.num[k] %= 10;
-			}
-		}
-	}
-
-	res.trim();
-	return *this = res;
-}
-BigInteger& BigInteger::operator/=(const BigInteger& x){
-    BigInteger res(0);
-    for(;*this>x;++res){
-        *this-=x;
+            if (res.num[k] >= 10) {
+                ost = res.num[k] / 10;
+                res.num[k] %= 10;
+            }
+        }
     }
+
+    res.trim();
     return *this = res;
 }
+
+BigInteger BigInteger::operator/(const int& x) const {
+    return BigInteger(*this) /= x;
+}
+
+BigInteger& BigInteger::operator/=(const int& x) {
+    if (x == 0) throw "Division by zero";
+
+    BigInteger res;
+    std::string dividend = "";
+
+    res.num.assign(num.size() + 1, 0);
+
+    for (size_t i = num.size(); i > 0; i--) {
+        dividend += std::to_string(num[i-1]);
+        int temp = stol(dividend);
+
+        if (temp / x > 0) {
+            res.num[i-1] = temp / x;
+            dividend = std::to_string(temp % x);
+        }
+    }
+
+    res.trim();
+    return *this = res;
+}
+
+BigInteger& BigInteger::operator/=(const BigInteger& sec){
+    BigInteger x, y, z;
+    z.num = this->num;
+    x.num = sec.num;
+    y.num = {0};
+    while (z >= x){
+        z-=x;
+        y++;
+    }
+    return *this = y; 
+}
+
 BigInteger& BigInteger::operator%=(const BigInteger& x){
-    BigInteger res(0);
-    if((*this == res) || (res == x)) return *this = res;
-    for(;*this>=x;){
-        *this-=x;
-    }
-    res.sgn = sgn;
-    return *this = res;
+    BigInteger zero(0);
+    if((*this == zero) || (zero == x)) 
+        return *this = zero;
+    //Знак результата определяется логической операцией эквивалентности
+    if((!sgn+x.sgn)*(sgn+!x.sgn)) 
+        for(;*this>=x;){
+            *this-=x;
+        }
+    else
+        for(;*this<zero;){
+            *this+=x;
+        }
+    return *this;
 }
 BigInteger BigInteger::operator-() const{
     BigInteger x = *this;
@@ -187,19 +240,19 @@ BigInteger BigInteger::operator-() const{
     return x;
 }
 BigInteger operator+(const BigInteger& a, const BigInteger& b) {
-	return BigInteger(a) += b;
+    return BigInteger(a) += b;
 }
 BigInteger operator-(const BigInteger& a, const BigInteger& b) {
-	return BigInteger(a) -= b;
+    return BigInteger(a) -= b;
 }
 BigInteger operator*(const BigInteger& a, const BigInteger& b) {
-	return BigInteger(a) *= b;
+    return BigInteger(a) *= b;
 }
 BigInteger operator/(const BigInteger& a, const BigInteger& b) {
-	return BigInteger(a) /= b;
+    return BigInteger(a) /= b;
 }
 BigInteger operator%(const BigInteger& a, const BigInteger& b) {
-	return BigInteger(a) %= b;
+    return BigInteger(a) %= b;
 }
 
 BigInteger BigInteger::operator++(int){
@@ -210,7 +263,7 @@ BigInteger BigInteger::operator++(int){
 BigInteger& BigInteger::operator++() {
     BigInteger one(1);
     *this += one;
-	return (*this);
+    return (*this);
 }
 
 BigInteger BigInteger::operator--(int){
@@ -221,11 +274,11 @@ BigInteger BigInteger::operator--(int){
 BigInteger& BigInteger::operator--() {
     BigInteger one(1);
     *this -= one;
-	return (*this);
+    return (*this);
 }
 
 BigInteger::operator bool() const {
-	return *this != BigInteger(0);
+    return *this != BigInteger(0);
 }
 
 std::string BigInteger::toString() const{
