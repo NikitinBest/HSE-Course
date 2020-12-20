@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <iostream>
 
 
 namespace task {
@@ -10,6 +11,7 @@ class list {
 public:
 
     list();
+    list(const list&);
     list(size_t count, const int& value = int());
 
     ~list();
@@ -40,12 +42,17 @@ public:
     void unique();
     void sort();
 
-    // Your code goes here?..
-
 private:
-
-    // Your code goes here...
-
+    struct item;
+    struct item {
+        item* prev;
+        item* next;
+        int value;
+    };
+    void delete_element(item* a);
+    size_t _size;
+    item* beg;
+    item* end;
 };
 
 }  // namespace task
