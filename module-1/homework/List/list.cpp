@@ -201,17 +201,38 @@ void task::list::swap(list& other){
 }
 
 void task::list::remove(const int& value) {
-    size_t cnt = 0;
-    int deleted_count = 0;
-    for (item* it = beg; cnt < _size; cnt++) {
-        item* cur = it;
-        it = it->next;
+    item* cur = beg;
+    item* delete_later = nullptr;
+    while (cur != nullptr) {
         if (cur->value == value) {
-            list::delete_element(cur);
-            deleted_count++;
+            if (cur->prev != nullptr) {
+                cur->prev->next = cur->next;
+            }
+            if (cur->next != nullptr) {
+                cur->next->prev = cur->prev;
+            }
+
+            item* next = cur->next;
+            if (cur == beg) {
+                beg = next;
+            }
+            if (cur == end) {
+                end = cur->prev;
+            }
+            if (std::addressof(value) != std::addressof(cur->value)) {
+                delete cur;
+            } else {
+                delete_later = cur;
+            }
+
+            cur = next;
+            _size--;
+        } else {
+            cur = cur->next;
         }
     }
-    _size -= deleted_count;
+    if (delete_later != nullptr)
+        delete delete_later;
 }
 
 void task::list::unique(){
